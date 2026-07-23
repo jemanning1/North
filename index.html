@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
+<!-- APP_VERSION: v3 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -640,6 +641,21 @@
 </div>
 
 <script>
+// ---------- Auto-update: reload silently if a newer version has been deployed ----------
+const APP_VERSION = 'v3';
+(async function checkForUpdate() {
+  try {
+    const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
+    const text = await res.text();
+    const match = text.match(/APP_VERSION:\s*(\S+)/);
+    const flagKey = 'north-reload-flag-' + (match ? match[1] : '');
+    if (match && match[1] !== APP_VERSION && !sessionStorage.getItem(flagKey)) {
+      sessionStorage.setItem(flagKey, '1');
+      location.reload();
+    }
+  } catch (e) { /* offline or blocked — ignore, no harm done */ }
+})();
+
 // ---------- Storage shim: real localStorage for GitHub Pages ----------
 const storage = {
   async get(key) {
