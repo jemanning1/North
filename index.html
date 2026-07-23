@@ -433,6 +433,99 @@
     padding: 10px 0 40px;
   }
 
+  .top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .gear-btn {
+    font-size: 16px;
+    background: var(--cream-soft);
+    border: none;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--forest);
+    transition: background 0.2s ease;
+  }
+  .gear-btn:hover { background: #e2d6b6; }
+
+  .sync-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(22, 41, 31, 0.45);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .sync-overlay.show { display: flex; }
+  .sync-panel {
+    background: var(--cream);
+    border-radius: 16px;
+    max-width: 440px;
+    width: 100%;
+    padding: 32px;
+  }
+  .sync-panel h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--forest);
+    margin: 0 0 8px;
+  }
+  .sync-panel p {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sage);
+    line-height: 1.6;
+    margin: 0 0 18px;
+  }
+  .sync-panel input {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 11px 14px;
+    border: 1px solid #ddd3ba;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 12px;
+  }
+  .sync-panel .row {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .sync-panel .status {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--forest);
+    margin-top: 14px;
+    min-height: 16px;
+  }
+  .sync-panel .btn-primary {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    background: var(--forest);
+    color: var(--cream);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .sync-panel .btn-ghost {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    background: transparent;
+    color: var(--forest);
+    border: 1px solid #ddd3ba;
+    padding: 10px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
   footer.tagline {
     text-align: center;
     margin-top: 64px;
@@ -448,12 +541,29 @@
 <div class="wrap">
   <header class="top">
     <div class="brand">North<span class="dot">.</span></div>
-    <nav class="tabs">
-      <button id="tab-today" class="active">Today</button>
-      <button id="tab-map">My Map</button>
-      <button id="tab-compass">Compass</button>
-    </nav>
+    <div class="top-right">
+      <nav class="tabs">
+        <button id="tab-today" class="active">Today</button>
+        <button id="tab-map">My Map</button>
+        <button id="tab-compass">Compass</button>
+      </nav>
+      <button id="syncGear" class="gear-btn" title="Sheet sync settings">⚙</button>
+    </div>
   </header>
+
+  <div class="sync-overlay" id="syncOverlay">
+    <div class="sync-panel">
+      <h3>Sheet sync</h3>
+      <p>Paste your Google Apps Script Web App URL below. Every reflection you save will also be appended as a row in your Sheet — a backup you can open outside this app.</p>
+      <input type="text" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <div class="row">
+        <button class="btn-primary" id="saveSheetUrl">Save</button>
+        <button class="btn-ghost" id="syncAllBtn">Sync all past entries</button>
+        <button class="btn-ghost" id="closeSyncPanel">Close</button>
+      </div>
+      <div class="status" id="syncStatus"></div>
+    </div>
+  </div>
 
   <!-- TODAY VIEW -->
   <section id="view-today" class="view active">
@@ -742,6 +852,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   if (existingIdx >= 0) entries[existingIdx] = entry; else entries.push(entry);
   await saveEntries();
   await checkAndGenerateLetter();
+  syncEntryToSheet(entry);
   const confirmMsg = document.getElementById('confirmMsg');
   confirmMsg.classList.add('show');
   setTimeout(() => confirmMsg.classList.remove('show'), 2600);
@@ -962,6 +1073,58 @@ async function checkAndGenerateLetter() {
   letters.push({ milestone: total, ts: Date.now(), body });
   await saveLetters();
 }
+
+// ---------- Google Sheet sync ----------
+function getSheetUrl() {
+  return localStorage.getItem('north-sheet-url') || '';
+}
+function setSheetUrl(url) {
+  localStorage.setItem('north-sheet-url', url);
+}
+async function syncEntryToSheet(entry) {
+  const url = getSheetUrl();
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(entry)
+    });
+  } catch (e) {
+    console.error('Sheet sync failed', e);
+  }
+}
+async function syncAllEntries(statusEl) {
+  const url = getSheetUrl();
+  if (!url) {
+    statusEl.textContent = 'Save a URL first.';
+    return;
+  }
+  statusEl.textContent = `Sending ${entries.length} entries…`;
+  for (let i = 0; i < entries.length; i++) {
+    await syncEntryToSheet(entries[i]);
+    statusEl.textContent = `Sent ${i + 1} of ${entries.length}…`;
+  }
+  statusEl.textContent = `Done. Check your Sheet — ${entries.length} rows sent.`;
+}
+
+const syncOverlay = document.getElementById('syncOverlay');
+document.getElementById('syncGear').addEventListener('click', () => {
+  document.getElementById('sheetUrlInput').value = getSheetUrl();
+  document.getElementById('syncStatus').textContent = getSheetUrl() ? 'Currently connected.' : 'Not connected yet.';
+  syncOverlay.classList.add('show');
+});
+document.getElementById('closeSyncPanel').addEventListener('click', () => syncOverlay.classList.remove('show'));
+syncOverlay.addEventListener('click', (e) => { if (e.target === syncOverlay) syncOverlay.classList.remove('show'); });
+document.getElementById('saveSheetUrl').addEventListener('click', () => {
+  const val = document.getElementById('sheetUrlInput').value.trim();
+  setSheetUrl(val);
+  document.getElementById('syncStatus').textContent = val ? 'Saved. New reflections will sync automatically.' : 'Cleared.';
+});
+document.getElementById('syncAllBtn').addEventListener('click', () => {
+  syncAllEntries(document.getElementById('syncStatus'));
+});
 
 // ---------- Tabs ----------
 document.getElementById('tab-today').addEventListener('click', () => switchTab('today'));
