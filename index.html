@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v3 -->
+<!-- APP_VERSION: v4 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -434,6 +434,32 @@
     padding: 10px 0 40px;
   }
 
+  .dig-deeper-row {
+    margin-top: 22px;
+    display: flex;
+    justify-content: center;
+  }
+  .dig-deeper-row .ghost-btn {
+    color: var(--forest);
+    border-color: #cdbf9a;
+  }
+  .dig-deeper-row .ghost-btn:hover { border-color: var(--forest); }
+  .dig-deeper-card {
+    margin-top: 18px;
+    background: var(--cream-soft);
+    border-left: 3px solid var(--gold);
+    border-radius: 4px;
+    padding: 20px 24px;
+  }
+  .dig-deeper-text {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--forest);
+    margin: 0;
+  }
+
   .top-right {
     display: flex;
     align-items: center;
@@ -587,6 +613,13 @@
         What makes that difficult to answer? <button id="idkExpand">Try again</button>
       </div>
       <div class="confirm" id="confirmMsg">Written down. It's part of your map now.</div>
+
+      <div class="dig-deeper-row">
+        <button class="ghost-btn" id="digDeeperBtn">Dig deeper</button>
+      </div>
+      <div class="dig-deeper-card" id="digDeeperCard" style="display:none;">
+        <p class="dig-deeper-text" id="digDeeperText"></p>
+      </div>
     </div>
 
     <div class="streak-row">
@@ -642,7 +675,7 @@
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v3';
+const APP_VERSION = 'v4';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -839,6 +872,7 @@ function renderToday() {
 
 document.getElementById('anotherBtn').addEventListener('click', () => {
   sessionOverride = pickRandomQuestion((sessionOverride || todayQuestion).q);
+  document.getElementById('digDeeperCard').style.display = 'none';
   renderToday();
 });
 
@@ -1089,6 +1123,42 @@ async function checkAndGenerateLetter() {
   letters.push({ milestone: total, ts: Date.now(), body });
   await saveLetters();
 }
+
+// ---------- Dig Deeper: real AI follow-up via GitHub Models (proxied through Apps Script) ----------
+async function askDigDeeper() {
+  const url = getSheetUrl();
+  const card = document.getElementById('digDeeperCard');
+  const textEl = document.getElementById('digDeeperText');
+  const q = sessionOverride || todayQuestion;
+  const reflection = reflectionInput.value.trim();
+
+  if (!url) {
+    card.style.display = 'block';
+    textEl.textContent = 'Connect your script first — tap ⚙ and paste your Apps Script URL.';
+    return;
+  }
+  if (!reflection) {
+    card.style.display = 'block';
+    textEl.textContent = 'Write something first, then dig deeper.';
+    return;
+  }
+
+  card.style.display = 'block';
+  textEl.textContent = 'Thinking…';
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'reflect', question: q.q, reflection: reflection })
+    });
+    const data = await res.json();
+    textEl.textContent = data.followUp || "Nothing came back that time — try again in a moment.";
+  } catch (e) {
+    textEl.textContent = "Couldn't reach the AI just now. Check your connection and try again.";
+  }
+}
+document.getElementById('digDeeperBtn').addEventListener('click', askDigDeeper);
 
 // ---------- Google Sheet sync ----------
 function getSheetUrl() {
