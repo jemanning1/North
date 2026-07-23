@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>North — Questions worth living</title>
+<!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #1f3a2e;
+    --forest-deep: #16291f;
+    --cream: #f4efe1;
+    --cream-soft: #ece4d0;
+    --ink: #2a2620;
+    --gold: #c9a15c;
+    --gold-soft: #e3cd9a;
+    --sage: #8ba18e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Newsreader', serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 56px;
+  }
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    color: var(--forest);
+  }
+  .brand .dot { color: var(--gold); }
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--cream-soft);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  nav.tabs button {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    border: none;
+    background: transparent;
+    color: var(--forest);
+    opacity: 0.55;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  nav.tabs button.active {
+    background: var(--forest);
+    color: var(--cream);
+    opacity: 1;
+  }
+  nav.tabs button:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .view { display: none; animation: fadeIn 0.5s ease; }
+  .view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: translateY(0);} }
+
+  .eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 14px;
+  }
+  .day-count {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--sage);
+    margin-bottom: 4px;
+  }
+  .question-card {
+    background: var(--forest);
+    color: var(--cream);
+    border-radius: 18px;
+    padding: 46px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .question-card::after {
+    content: "";
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,161,92,0.18), transparent 70%);
+  }
+  .question-card .season {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    margin-bottom: 18px;
+  }
+  .question-text {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(24px, 4vw, 32px);
+    line-height: 1.35;
+    margin: 0;
+  }
+  .card-footer {
+    margin-top: 28px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .ghost-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--gold-soft);
+    background: transparent;
+    border: 1px solid rgba(227, 205, 154, 0.35);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .ghost-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .reflect-box {
+    margin-top: 28px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    font-family: 'Newsreader', serif;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid #ddd3ba;
+    border-radius: 14px;
+    padding: 20px;
+    resize: vertical;
+  }
+  .actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+  }
+  .hint {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--sage);
+  }
+  .save-btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    background: var(--forest);
+    color: var(--cream);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .save-btn:hover { background: var(--forest-deep); transform: translateY(-1px); }
+  .save-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+  .idk-note {
+    margin-top: 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sage);
+    font-style: italic;
+  }
+  .idk-note button {
+    background: none; border: none; padding: 0;
+    color: var(--forest); text-decoration: underline;
+    cursor: pointer; font-family: inherit; font-size: inherit;
+  }
+
+  .confirm {
+    margin-top: 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--forest);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .confirm.show { opacity: 0.85; }
+
+  .streak-row {
+    display: flex; gap: 28px; margin-top: 44px;
+    font-family: 'Inter', sans-serif;
+  }
+  .streak-item .num {
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    color: var(--forest);
+  }
+  .streak-item .label {
+    font-size: 12px; color: var(--sage); letter-spacing: 0.04em;
+  }
+
+  /* Map view */
+  .map-header { margin-bottom: 20px; }
+  .map-header h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 26px;
+    color: var(--forest);
+    margin: 0 0 6px;
+  }
+  .map-header p {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sage);
+    margin: 0;
+  }
+  .sky {
+    background: var(--forest);
+    border-radius: 18px;
+    height: 360px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .sky svg { width: 100%; height: 100%; }
+  .star {
+    cursor: pointer;
+  }
+  .star circle { transition: r 0.2s ease; }
+  .star:hover circle { r: 6; }
+  .star-tip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--cream);
+    color: var(--forest);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 240px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    transform: translate(-50%, -110%);
+    z-index: 5;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  }
+  .empty-sky {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--gold-soft);
+    font-family: 'Inter', sans-serif; font-size: 13px;
+    text-align: center; padding: 0 40px; opacity: 0.7;
+  }
+
+  .search-row { margin-bottom: 18px; }
+  .search-row input {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 12px 16px;
+    border: 1px solid #ddd3ba;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .entry {
+    border-bottom: 1px solid #e2d8bf;
+    padding: 20px 0;
+  }
+  .entry:last-child { border-bottom: none; }
+  .entry .entry-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 6px;
+  }
+  .entry .entry-q {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--forest);
+    margin: 0 0 8px;
+  }
+  .entry .entry-a {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .no-entries {
+    font-family: 'Inter', sans-serif;
+    color: var(--sage);
+    font-size: 14px;
+    padding: 40px 0;
+    text-align: center;
+  }
+
+  /* Compass view */
+  .compass-header h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 26px;
+    color: var(--forest);
+    margin: 0 0 6px;
+  }
+  .compass-header p {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sage);
+    margin: 0 0 28px;
+  }
+  .locked-compass {
+    background: var(--cream-soft);
+    border: 1px dashed #cdbf9a;
+    border-radius: 16px;
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .locked-compass .big {
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    color: var(--forest);
+    margin-bottom: 6px;
+  }
+  .locked-compass .sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sage);
+    margin-bottom: 20px;
+  }
+  .progress-track {
+    background: #ddd3ba;
+    height: 6px;
+    border-radius: 999px;
+    max-width: 260px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: var(--gold);
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+  .noticed-card {
+    background: var(--forest);
+    color: var(--cream);
+    border-radius: 18px;
+    padding: 36px 34px;
+    margin-bottom: 36px;
+  }
+  .noticed-card .lead {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 20px;
+    margin: 0 0 18px;
+    color: var(--gold-soft);
+  }
+  .noticed-card ul {
+    margin: 0; padding: 0; list-style: none;
+  }
+  .noticed-card li {
+    font-family: 'Newsreader', serif;
+    font-size: 16px;
+    line-height: 1.7;
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .noticed-card li::before {
+    content: "—";
+    position: absolute; left: 0;
+    color: var(--gold);
+  }
+  .letters-heading {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    color: var(--forest);
+    margin: 8px 0 16px;
+  }
+  .letter-card {
+    background: #fff;
+    border: 1px solid #e2d8bf;
+    border-radius: 14px;
+    padding: 30px 30px 24px;
+    margin-bottom: 20px;
+  }
+  .letter-card .letter-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 12px;
+  }
+  .letter-card .letter-body {
+    font-family: 'Newsreader', serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .no-letters {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--sage);
+    padding: 10px 0 40px;
+  }
+
+  footer.tagline {
+    text-align: center;
+    margin-top: 64px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--sage);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">North<span class="dot">.</span></div>
+    <nav class="tabs">
+      <button id="tab-today" class="active">Today</button>
+      <button id="tab-map">My Map</button>
+      <button id="tab-compass">Compass</button>
+    </nav>
+  </header>
+
+  <!-- TODAY VIEW -->
+  <section id="view-today" class="view active">
+    <div class="day-count" id="dayCount"></div>
+    <div class="question-card">
+      <div class="season" id="seasonLabel">Season</div>
+      <p class="question-text" id="questionText">Loading your question…</p>
+      <div class="card-footer">
+        <button class="ghost-btn" id="anotherBtn">Ask me something else</button>
+      </div>
+    </div>
+
+    <div class="reflect-box">
+      <textarea id="reflectionInput" placeholder="Write however you like. A sentence, a page, or 'I don't know.'"></textarea>
+      <div class="actions-row">
+        <span class="hint" id="charHint">&nbsp;</span>
+        <button class="save-btn" id="saveBtn">Save reflection</button>
+      </div>
+      <div class="idk-note" id="idkNote" style="display:none;">
+        What makes that difficult to answer? <button id="idkExpand">Try again</button>
+      </div>
+      <div class="confirm" id="confirmMsg">Written down. It's part of your map now.</div>
+    </div>
+
+    <div class="streak-row">
+      <div class="streak-item"><div class="num" id="streakNum">0</div><div class="label">DAY STREAK</div></div>
+      <div class="streak-item"><div class="num" id="totalNum">0</div><div class="label">REFLECTIONS</div></div>
+    </div>
+  </section>
+
+  <!-- MAP VIEW -->
+  <section id="view-map" class="view">
+    <div class="map-header">
+      <h2>Your Map</h2>
+      <p>Every reflection becomes a star. Hover one to remember it.</p>
+    </div>
+    <div class="sky" id="sky">
+      <div class="empty-sky" id="emptySky">No stars yet — your first reflection will appear here.</div>
+      <svg id="skySvg" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="star-tip" id="starTip"></div>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Search your reflections…">
+    </div>
+    <div id="entryList"></div>
+  </section>
+
+  <!-- COMPASS VIEW -->
+  <section id="view-compass" class="view">
+    <div class="compass-header">
+      <h2>Compass</h2>
+      <p>Not an opinion. Just what your own words keep pointing toward.</p>
+    </div>
+
+    <div id="compassLocked" class="locked-compass" style="display:none;">
+      <div class="big" id="lockedCount">0 / 30</div>
+      <div class="sub" id="lockedSub">Your Compass appears after 30 reflections.</div>
+      <div class="progress-track"><div class="progress-fill" id="lockedFill" style="width:0%"></div></div>
+    </div>
+
+    <div id="compassUnlocked" style="display:none;">
+      <div class="noticed-card">
+        <p class="lead">I've noticed…</p>
+        <ul id="noticedList"></ul>
+      </div>
+
+      <h3 class="letters-heading">Letters to Yourself</h3>
+      <div id="lettersList"></div>
+    </div>
+  </section>
+
+  <footer class="tagline">NORTH — QUESTIONS WORTH LIVING</footer>
+</div>
+
+<script>
+// ---------- Storage shim: real localStorage for GitHub Pages ----------
+const storage = {
+  async get(key) {
+    const val = localStorage.getItem(key);
+    if (val === null) throw new Error('not found');
+    return { key, value: val };
+  },
+  async set(key, value) {
+    localStorage.setItem(key, value);
+    return { key, value };
+  }
+};
+
+// ---------- Question bank ----------
+const QUESTIONS = [
+  {q:"What parts of yourself have stayed constant across every job you've had?", s:"Identity"},
+  {q:"When have you felt most unlike yourself?", s:"Identity"},
+  {q:"What do people consistently misunderstand about you?", s:"Identity"},
+  {q:"What could you happily spend a Saturday learning about?", s:"Curiosity"},
+  {q:"Which book changed how you see the world?", s:"Curiosity"},
+  {q:"If you had a year with no need to earn money, what rabbit hole would you disappear into?", s:"Curiosity"},
+  {q:"What experiences still shape your reactions today?", s:"Patterns"},
+  {q:"What are you always trying to prove?", s:"Patterns"},
+  {q:"When do you feel invisible?", s:"Patterns"},
+  {q:"What do you refuse to let happen to other people, because it happened to you?", s:"Patterns"},
+  {q:"What problem do you keep coming back to, in every role you've held?", s:"Contribution"},
+  {q:"What do people naturally ask you for help with?", s:"Contribution"},
+  {q:"If you disappeared from your current work tomorrow, what would genuinely be missing?", s:"Contribution"},
+  {q:"What feels complete?", s:"Next Chapter"},
+  {q:"What are you grieving, even quietly?", s:"Next Chapter"},
+  {q:"What deserves another chance?", s:"Next Chapter"},
+  {q:"What is quietly calling you?", s:"Next Chapter"},
+  {q:"What energises you so reliably that you'd trust it on a bad day?", s:"Operating Manual"},
+  {q:"What drains you, even when you can't explain why?", s:"Operating Manual"},
+  {q:"How do you actually make decisions — fast and instinctive, or slow and weighed?", s:"Operating Manual"},
+  {q:"How do you know, in your body, when something is wrong?", s:"Operating Manual"},
+  {q:"What does respect look like to you, specifically?", s:"Operating Manual"},
+  {q:"What makes you feel invisible in a room?", s:"Operating Manual"},
+  {q:"What makes you feel most alive?", s:"Operating Manual"},
+  {q:"What's a blind spot you only half-admit to?", s:"Operating Manual"},
+  {q:"What's non-negotiable for you, even when it costs you something?", s:"Operating Manual"},
+  {q:"What would you say your life's work has been, so far?", s:"Operating Manual"},
+  {q:"What did a moment of being overlooked once stop you believing about yourself?", s:"Patterns"},
+  {q:"Has the same wound shown up more than once, in different costumes?", s:"Patterns"},
+  {q:"What's a principle you've discovered, not been taught?", s:"Compass"},
+  {q:"Where in your life do your choices already line up with who you are?", s:"Compass"},
+  {q:"Where do they still not?", s:"Compass"},
+  {q:"What would you stand up for, even without being able to explain why yet?", s:"Compass"},
+  {q:"What kind of people bring out your best?", s:"Compass"},
+  {q:"What kind of people quietly drain you, no matter how nice they are?", s:"Compass"},
+  {q:"What's a belief you've outgrown?", s:"Next Chapter"},
+  {q:"What decision are you most proud of, and why that one?", s:"Next Chapter"},
+  {q:"What's your next horizon — not the ten-year plan, just the next real bend in the road?", s:"Next Chapter"},
+  {q:"When did you last change your mind about something important?", s:"Curiosity"},
+  {q:"What do you know to be true, that you can't fully prove?", s:"Compass"},
+  {q:"What's a story you tell about yourself that might not be true anymore?", s:"Identity"},
+  {q:"Who taught you what fairness means, and how?", s:"Patterns"},
+  {q:"What does belonging feel like, physically, when you have it?", s:"Identity"},
+  {q:"What have you built that you're quietly proud nobody asked you to build?", s:"Contribution"},
+  {q:"What would the people who know you best say your compass points toward?", s:"Compass"},
+  {q:"What are you doing right now purely because it's expected, not because you chose it?", s:"Next Chapter"},
+  {q:"What's a fear you've stopped letting drive?", s:"Patterns"},
+  {q:"What would you do differently if no one were watching or grading it?", s:"Identity"},
+  {q:"What conversation have you been avoiding, with yourself or someone else?", s:"Next Chapter"},
+  {q:"What's the difference between what you want and what you think you should want?", s:"Compass"},
+  {q:"When have you led, without anyone appointing you to?", s:"Contribution"},
+  {q:"What does 'enough' look like for you — and who set that number?", s:"Operating Manual"},
+  {q:"What's a rule you follow that was never actually written down for you?", s:"Patterns"},
+  {q:"What would you build if you knew it might only ever be useful to you?", s:"Curiosity"},
+  {q:"What have you protected in yourself, without quite naming it as protection?", s:"Identity"},
+  {q:"What do you want to be true about you, five years from now?", s:"Next Chapter"},
+  {q:"What's something you know how to do that you never call a skill?", s:"Contribution"},
+  {q:"Where does your patience run out fastest — and what does that protect?", s:"Operating Manual"},
+  {q:"What would 'home' need to feel like, wherever you are?", s:"Identity"},
+  {q:"What's a risk that turned out to be smaller than it felt?", s:"Next Chapter"}
+];
+
+// ---------- State ----------
+let entries = [];
+let letters = [];
+let todayQuestion = null;
+let sessionOverride = null; // when "ask me something else" is used
+
+const STOPWORDS = new Set(("the a an and or but if then so because as of to in on at for with without from by "+
+  "is are was were be been being have has had do does did i you he she it we they me my your his her its our their "+
+  "this that these those there here what which who whom when where why how not no yes just very really quite "+
+  "can could will would should shall may might must about into over under again further once more most other some "+
+  "such only own same than too also up down out off all any each few both").split(' '));
+
+const THEME_LABELS = {
+  fair: "fairness", fairness: "fairness", unfair: "fairness",
+  belong: "belonging", belonging: "belonging", belonged: "belonging",
+  invisible: "feeling invisible", overlooked: "being overlooked", unheard: "not being heard",
+  lead: "leadership", leader: "leadership", leadership: "leadership", leading: "leadership",
+  help: "helping others", helping: "helping others", grow: "helping others grow", growth: "growth",
+  proud: "pride in what you've built", trust: "trust", respect: "respect",
+  family: "family", learn: "learning", learning: "learning", curious: "curiosity",
+  tired: "tiredness", exhausted: "exhaustion", energy: "energy", energised: "energy",
+  scared: "fear", afraid: "fear", fear: "fear", brave: "courage", courage: "courage",
+  work: "work", career: "career", change: "change", changing: "change"
+};
+
+// ---------- Helpers ----------
+function dayNumberSinceEpoch(d) {
+  return Math.floor(d.getTime() / 86400000);
+}
+function todayKey(d = new Date()) {
+  return d.toISOString().slice(0,10);
+}
+function pickQuestionForToday() {
+  const idx = dayNumberSinceEpoch(new Date()) % QUESTIONS.length;
+  return QUESTIONS[idx];
+}
+function pickRandomQuestion(excludeText) {
+  let pool = QUESTIONS.filter(q => q.q !== excludeText);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+async function loadEntries() {
+  try {
+    const res = await storage.get('north-entries', false);
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  } catch (e) {
+    entries = [];
+  }
+}
+async function saveEntries() {
+  try {
+    await storage.set('north-entries', JSON.stringify(entries), false);
+  } catch (e) {
+    console.error('Save failed', e);
+  }
+}
+
+async function loadLetters() {
+  try {
+    const res = await storage.get('north-letters', false);
+    letters = res && res.value ? JSON.parse(res.value) : [];
+  } catch (e) {
+    letters = [];
+  }
+}
+async function saveLetters() {
+  try {
+    await storage.set('north-letters', JSON.stringify(letters), false);
+  } catch (e) {
+    console.error('Letter save failed', e);
+  }
+}
+
+function computeStreak() {
+  const dates = new Set(entries.map(e => e.date));
+  let streak = 0;
+  let cursor = new Date();
+  // if no entry today, still allow streak counted through yesterday
+  if (!dates.has(todayKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  while (dates.has(todayKey(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+// ---------- Render: Today view ----------
+function renderToday() {
+  const q = sessionOverride || todayQuestion;
+  document.getElementById('seasonLabel').textContent = q.s;
+  document.getElementById('questionText').textContent = q.q;
+
+  const dayNum = dayNumberSinceEpoch(new Date()) - dayNumberSinceEpoch(new Date(entries.length ? entries[entries.length-1].date : todayKey())) ;
+  document.getElementById('dayCount').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const existing = entries.find(e => e.date === todayKey() && e.question === q.q);
+  document.getElementById('reflectionInput').value = existing ? existing.reflection : '';
+
+  document.getElementById('streakNum').textContent = computeStreak();
+  document.getElementById('totalNum').textContent = entries.length;
+}
+
+document.getElementById('anotherBtn').addEventListener('click', () => {
+  sessionOverride = pickRandomQuestion((sessionOverride || todayQuestion).q);
+  renderToday();
+});
+
+const reflectionInput = document.getElementById('reflectionInput');
+const idkNote = document.getElementById('idkNote');
+reflectionInput.addEventListener('input', () => {
+  const val = reflectionInput.value.trim().toLowerCase();
+  if (val === "i don't know" || val === "i dont know" || val === "idk") {
+    idkNote.style.display = 'block';
+  } else {
+    idkNote.style.display = 'none';
+  }
+});
+document.getElementById('idkExpand').addEventListener('click', () => {
+  reflectionInput.value = "What makes that difficult to answer? ";
+  reflectionInput.focus();
+  idkNote.style.display = 'none';
+});
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const q = sessionOverride || todayQuestion;
+  const text = reflectionInput.value.trim();
+  if (!text) return;
+  const dateKey = todayKey();
+  const existingIdx = entries.findIndex(e => e.date === dateKey && e.question === q.q);
+  const entry = { date: dateKey, question: q.q, season: q.s, reflection: text, ts: Date.now() };
+  if (existingIdx >= 0) entries[existingIdx] = entry; else entries.push(entry);
+  await saveEntries();
+  await checkAndGenerateLetter();
+  const confirmMsg = document.getElementById('confirmMsg');
+  confirmMsg.classList.add('show');
+  setTimeout(() => confirmMsg.classList.remove('show'), 2600);
+  renderToday();
+  renderMap();
+});
+
+// ---------- Render: Map view ----------
+function renderMap() {
+  const svg = document.getElementById('skySvg');
+  const emptySky = document.getElementById('emptySky');
+  svg.innerHTML = '';
+  if (entries.length === 0) {
+    emptySky.style.display = 'flex';
+  } else {
+    emptySky.style.display = 'none';
+    const sorted = [...entries].sort((a,b) => a.ts - b.ts);
+    const points = sorted.map((e, i) => {
+      // golden-angle spiral scatter, deterministic
+      const angle = i * 137.5 * Math.PI / 180;
+      const radius = 12 * Math.sqrt(i + 1);
+      const cx = 300 + radius * Math.cos(angle);
+      const cy = 180 + radius * Math.sin(angle) * 0.6;
+      return { x: Math.max(20, Math.min(580, cx)), y: Math.max(20, Math.min(340, cy)), entry: e };
+    });
+
+    // connecting lines
+    for (let i = 1; i < points.length; i++) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', points[i-1].x);
+      line.setAttribute('y1', points[i-1].y);
+      line.setAttribute('x2', points[i].x);
+      line.setAttribute('y2', points[i].y);
+      line.setAttribute('stroke', '#c9a15c');
+      line.setAttribute('stroke-opacity', '0.15');
+      line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+    }
+    // stars
+    const tip = document.getElementById('starTip');
+    points.forEach(p => {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'star');
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', p.x);
+      circle.setAttribute('cy', p.y);
+      circle.setAttribute('r', '3.5');
+      circle.setAttribute('fill', '#e3cd9a');
+      g.appendChild(circle);
+      g.addEventListener('mousemove', (evt) => {
+        const rect = document.getElementById('sky').getBoundingClientRect();
+        tip.style.left = (evt.clientX - rect.left) + 'px';
+        tip.style.top = (evt.clientY - rect.top) + 'px';
+        tip.style.opacity = '1';
+        tip.textContent = `${p.entry.date} — ${p.entry.question}`;
+      });
+      g.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+      svg.appendChild(g);
+    });
+  }
+  renderEntryList(document.getElementById('searchInput').value);
+}
+
+function renderEntryList(filter = '') {
+  const list = document.getElementById('entryList');
+  list.innerHTML = '';
+  const sorted = [...entries].sort((a,b) => b.ts - a.ts);
+  const f = filter.trim().toLowerCase();
+  const filtered = f
+    ? sorted.filter(e => e.question.toLowerCase().includes(f) || e.reflection.toLowerCase().includes(f))
+    : sorted;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="no-entries">${entries.length === 0 ? "Your journal will fill in here as you reflect." : "No reflections match that search."}</div>`;
+    return;
+  }
+  filtered.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    const dateFmt = new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    div.innerHTML = `
+      <div class="entry-date">${dateFmt} · ${e.season}</div>
+      <p class="entry-q">${e.question}</p>
+      <div class="entry-a"></div>
+    `;
+    div.querySelector('.entry-a').textContent = e.reflection;
+    list.appendChild(div);
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', (e) => renderEntryList(e.target.value));
+
+// ---------- Compass: pattern analysis ----------
+function analyzeThemes(entryList) {
+  const counts = {};
+  entryList.forEach(e => {
+    const words = e.reflection.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/);
+    const seen = new Set();
+    words.forEach(w => {
+      if (w.length < 4 || STOPWORDS.has(w)) return;
+      const label = THEME_LABELS[w] || null;
+      const key = label || w;
+      if (seen.has(key)) return; // count once per entry, not per occurrence
+      seen.add(key);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+  });
+  return Object.entries(counts)
+    .filter(([, c]) => c >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+}
+
+function analyzeSeasons(entryList) {
+  const counts = {};
+  entryList.forEach(e => { counts[e.season] = (counts[e.season] || 0) + 1; });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+}
+
+function buildNoticedList(entryList) {
+  const themes = analyzeThemes(entryList);
+  const seasons = analyzeSeasons(entryList);
+  const notes = [];
+
+  themes.slice(0, 4).forEach(([theme, count]) => {
+    notes.push(`You've returned to ${theme} in ${count} of your reflections.`);
+  });
+
+  if (seasons.length) {
+    const [topSeason, topCount] = seasons[0];
+    notes.push(`You write about ${topSeason} more than anything else — ${topCount} reflections and counting.`);
+  }
+
+  if (notes.length === 0) {
+    notes.push("Nothing repeats loudly yet. Keep writing — the pattern will show itself.");
+  }
+  return notes;
+}
+
+function renderCompass() {
+  const total = entries.length;
+  const locked = document.getElementById('compassLocked');
+  const unlocked = document.getElementById('compassUnlocked');
+
+  if (total < 30) {
+    locked.style.display = 'block';
+    unlocked.style.display = 'none';
+    document.getElementById('lockedCount').textContent = `${total} / 30`;
+    document.getElementById('lockedFill').style.width = `${Math.min(100, (total / 30) * 100)}%`;
+    return;
+  }
+
+  locked.style.display = 'none';
+  unlocked.style.display = 'block';
+
+  const notes = buildNoticedList(entries);
+  const list = document.getElementById('noticedList');
+  list.innerHTML = '';
+  notes.forEach(n => {
+    const li = document.createElement('li');
+    li.textContent = n;
+    list.appendChild(li);
+  });
+
+  renderLetters();
+}
+
+function renderLetters() {
+  const container = document.getElementById('lettersList');
+  container.innerHTML = '';
+  if (letters.length === 0) {
+    container.innerHTML = '<div class="no-letters">Your first letter arrives at 30 reflections. It only grows from there.</div>';
+    return;
+  }
+  [...letters].reverse().forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'letter-card';
+    const dateFmt = new Date(l.ts).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    div.innerHTML = `<div class="letter-date">Milestone ${l.milestone} · ${dateFmt}</div><div class="letter-body"></div>`;
+    div.querySelector('.letter-body').textContent = l.body;
+    container.appendChild(div);
+  });
+}
+
+// ---------- Letter to Yourself, every 30 entries ----------
+function generateLetter(milestone) {
+  const slice = entries.slice(Math.max(0, entries.length - 30));
+  const themes = analyzeThemes(slice);
+  const seasons = analyzeSeasons(slice);
+  const topTheme = themes[0];
+  const secondTheme = themes[1];
+  const topSeason = seasons[0];
+
+  let body = `Dear you,\n\n`;
+  body += `${milestone} reflections in. Not enough to draw conclusions, but enough that a few things are getting harder to miss.\n\n`;
+
+  if (topTheme) {
+    body += `${topTheme[0].charAt(0).toUpperCase() + topTheme[0].slice(1)} came up in ${topTheme[1]} of your last 30 entries. `;
+    body += `It wasn't asked about directly — you brought it there yourself, more than once.\n\n`;
+  }
+  if (secondTheme) {
+    body += `So did ${secondTheme[0]}. Maybe they're not two things — maybe they're one thing, seen from different angles.\n\n`;
+  }
+  if (topSeason) {
+    body += `Most of what you wrote sat inside ${topSeason[0]}. That's worth noticing without deciding what it means yet.\n\n`;
+  }
+  body += `This isn't advice, and it isn't a verdict. It's a mirror, made entirely of your own words. What you do with it is still yours to decide.\n\n`;
+  body += `— North`;
+
+  return body;
+}
+
+async function checkAndGenerateLetter() {
+  const total = entries.length;
+  if (total < 30 || total % 30 !== 0) return;
+  if (letters.some(l => l.milestone === total)) return;
+  const body = generateLetter(total);
+  letters.push({ milestone: total, ts: Date.now(), body });
+  await saveLetters();
+}
+
+// ---------- Tabs ----------
+document.getElementById('tab-today').addEventListener('click', () => switchTab('today'));
+document.getElementById('tab-map').addEventListener('click', () => switchTab('map'));
+document.getElementById('tab-compass').addEventListener('click', () => switchTab('compass'));
+function switchTab(name) {
+  document.getElementById('tab-today').classList.toggle('active', name === 'today');
+  document.getElementById('tab-map').classList.toggle('active', name === 'map');
+  document.getElementById('tab-compass').classList.toggle('active', name === 'compass');
+  document.getElementById('view-today').classList.toggle('active', name === 'today');
+  document.getElementById('view-map').classList.toggle('active', name === 'map');
+  document.getElementById('view-compass').classList.toggle('active', name === 'compass');
+  if (name === 'map') renderMap();
+  if (name === 'compass') renderCompass();
+}
+
+// ---------- Init ----------
+(async function init() {
+  todayQuestion = pickQuestionForToday();
+  await loadEntries();
+  await loadLetters();
+  renderToday();
+  renderMap();
+  renderCompass();
+})();
+</script>
+</body>
+</html>
