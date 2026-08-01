@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v6 -->
+<!-- APP_VERSION: v7 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -704,7 +704,7 @@
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v6';
+const APP_VERSION = 'v7';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -822,10 +822,15 @@ const THEME_LABELS = {
 
 // ---------- Helpers ----------
 function dayNumberSinceEpoch(d) {
-  return Math.floor(d.getTime() / 86400000);
+  // Use local calendar date (not UTC) so the day rolls over at local midnight
+  const localMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.floor(localMidnight.getTime() / 86400000);
 }
 function todayKey(d = new Date()) {
-  return d.toISOString().slice(0,10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 function pickQuestionForToday() {
   const idx = dayNumberSinceEpoch(new Date()) % QUESTIONS.length;
