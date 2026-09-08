@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v7 -->
+<!-- APP_VERSION: v8 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -704,7 +704,7 @@
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v7';
+const APP_VERSION = 'v8';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -801,11 +801,25 @@ let letters = [];
 let todayQuestion = null;
 let sessionOverride = null; // when "ask me something else" is used
 
-const STOPWORDS = new Set(("the a an and or but if then so because as of to in on at for with without from by "+
+const STOPWORDS = new Set((
+  "the a an and or but if then so because as of to in on at for with without from by "+
   "is are was were be been being have has had do does did i you he she it we they me my your his her its our their "+
   "this that these those there here what which who whom when where why how not no yes just very really quite "+
   "can could will would should shall may might must about into over under again further once more most other some "+
-  "such only own same than too also up down out off all any each few both").split(' '));
+  "such only own same than too also up down out off all any each few both "+
+  "think thought thinking thinks know knew known knows want wanted wanting wants like liked liking likes "+
+  "feel felt feeling feelings feels get got getting gets make made making makes come came coming comes "+
+  "go going goes went look looked looking looks say said saying says tell told telling tells "+
+  "need needed needing needs seem seemed seeming seems try tried trying tries "+
+  "keep kept keeping keeps mean meant meaning means find found finding finds "+
+  "give gave given giving gives take took taken taking takes "+
+  "people person thing things stuff way ways life time times day days year years week weeks month months "+
+  "lot lots little bit part parts kind kinds sort sorts something someone somewhat everything everyone anything anyone nothing "+
+  "moment moments point points reason reasons place places world "+
+  "actually maybe probably still even back first last much many sure "+
+  "always never sometimes often usually literally basically honestly definitely "+
+  "guess suppose pretty fairly rather"
+).split(/\s+/));
 
 const THEME_LABELS = {
   fair: "fairness", fairness: "fairness", unfair: "fairness",
@@ -1077,7 +1091,7 @@ function buildNoticedList(entryList) {
   return notes;
 }
 
-function renderCompass() {
+async function renderCompass() {
   const total = entries.length;
   const locked = document.getElementById('compassLocked');
   const unlocked = document.getElementById('compassUnlocked');
@@ -1093,7 +1107,31 @@ function renderCompass() {
   locked.style.display = 'none';
   unlocked.style.display = 'block';
 
-  const notes = buildNoticedList(entries);
+  const list = document.getElementById('noticedList');
+  const url = getSheetUrl();
+  const cacheRaw = localStorage.getItem('north-compass-cache');
+  const cache = cacheRaw ? JSON.parse(cacheRaw) : null;
+
+  // Use cached AI result if it matches the current entry count — avoids re-calling on every tab switch
+  if (cache && cache.count === total && cache.observations) {
+    renderNoticedList(cache.observations);
+  } else if (url) {
+    list.innerHTML = '<li style="opacity:0.7;">Reading through your reflections…</li>';
+    const observations = await fetchAICompass();
+    if (observations) {
+      localStorage.setItem('north-compass-cache', JSON.stringify({ count: total, observations }));
+      renderNoticedList(observations);
+    } else {
+      renderNoticedList(buildNoticedList(entries), true);
+    }
+  } else {
+    renderNoticedList(buildNoticedList(entries), true);
+  }
+
+  renderLetters();
+}
+
+function renderNoticedList(notes, isFallback) {
   const list = document.getElementById('noticedList');
   list.innerHTML = '';
   notes.forEach(n => {
@@ -1101,8 +1139,31 @@ function renderCompass() {
     li.textContent = n;
     list.appendChild(li);
   });
+  if (isFallback) {
+    const note = document.createElement('li');
+    note.style.opacity = '0.6';
+    note.style.fontSize = '13px';
+    note.style.fontFamily = "'Inter', sans-serif";
+    note.textContent = 'Connect your Sheet/AI script (⚙) for deeper, AI-read analysis instead of word-counting.';
+    list.appendChild(note);
+  }
+}
 
-  renderLetters();
+async function fetchAICompass() {
+  const url = getSheetUrl();
+  if (!url) return null;
+  try {
+    const slice = entries.slice(-30);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'compass', entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season })) })
+    });
+    const data = await res.json();
+    return (data.observations && data.observations.length) ? data.observations : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 function renderLetters() {
@@ -1116,15 +1177,25 @@ function renderLetters() {
     const div = document.createElement('div');
     div.className = 'letter-card';
     const dateFmt = new Date(l.ts).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-    div.innerHTML = `<div class="letter-date">Milestone ${l.milestone} · ${dateFmt}</div><div class="letter-body"></div>`;
+    div.innerHTML = `<div class="letter-date">Milestone ${l.milestone} · ${dateFmt}${l.aiGenerated !== true ? ' · basic version' : ''}</div><div class="letter-body"></div>`;
     div.querySelector('.letter-body').textContent = l.body;
+    if (l.aiGenerated !== true) {
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'ghost-btn';
+      retryBtn.style.marginTop = '14px';
+      retryBtn.style.color = 'var(--forest)';
+      retryBtn.style.borderColor = '#cdbf9a';
+      retryBtn.textContent = 'Regenerate with AI';
+      retryBtn.addEventListener('click', () => regenerateLetter(l.milestone));
+      div.appendChild(retryBtn);
+    }
     container.appendChild(div);
   });
 }
 
 // ---------- Letter to Yourself, every 30 entries ----------
-function generateLetter(milestone) {
-  const slice = entries.slice(Math.max(0, entries.length - 30));
+function localGenerateLetter(milestone) {
+  const slice = entries.slice(Math.max(0, milestone - 30), milestone);
   const themes = analyzeThemes(slice);
   const seasons = analyzeSeasons(slice);
   const topTheme = themes[0];
@@ -1135,7 +1206,7 @@ function generateLetter(milestone) {
   body += `${milestone} reflections in. Not enough to draw conclusions, but enough that a few things are getting harder to miss.\n\n`;
 
   if (topTheme) {
-    body += `${topTheme[0].charAt(0).toUpperCase() + topTheme[0].slice(1)} came up in ${topTheme[1]} of your last 30 entries. `;
+    body += `${topTheme[0].charAt(0).toUpperCase() + topTheme[0].slice(1)} came up in ${topTheme[1]} of these entries. `;
     body += `It wasn't asked about directly — you brought it there yourself, more than once.\n\n`;
   }
   if (secondTheme) {
@@ -1144,19 +1215,59 @@ function generateLetter(milestone) {
   if (topSeason) {
     body += `Most of what you wrote sat inside ${topSeason[0]}. That's worth noticing without deciding what it means yet.\n\n`;
   }
-  body += `This isn't advice, and it isn't a verdict. It's a mirror, made entirely of your own words. What you do with it is still yours to decide.\n\n`;
+  if (!topTheme && !topSeason) {
+    body += `Nothing repeats loudly yet across these entries. That's fine — some stretches are like that.\n\n`;
+  }
+  body += `This isn't advice, and it isn't a verdict. It's a mirror. What you do with it is still yours to decide.\n\n`;
   body += `— North`;
 
   return body;
+}
+
+async function fetchAILetter(milestone) {
+  const url = getSheetUrl();
+  if (!url) return null;
+  try {
+    const slice = entries.slice(Math.max(0, milestone - 30), milestone);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'letter',
+        milestone: milestone,
+        entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season }))
+      })
+    });
+    const data = await res.json();
+    return data.body || null;
+  } catch (e) {
+    return null;
+  }
 }
 
 async function checkAndGenerateLetter() {
   const total = entries.length;
   if (total < 30 || total % 30 !== 0) return;
   if (letters.some(l => l.milestone === total)) return;
-  const body = generateLetter(total);
-  letters.push({ milestone: total, ts: Date.now(), body });
+
+  const aiBody = await fetchAILetter(total);
+  if (aiBody) {
+    letters.push({ milestone: total, ts: Date.now(), body: aiBody, aiGenerated: true });
+  } else {
+    letters.push({ milestone: total, ts: Date.now(), body: localGenerateLetter(total), aiGenerated: false });
+  }
   await saveLetters();
+}
+
+async function regenerateLetter(milestone) {
+  const idx = letters.findIndex(l => l.milestone === milestone);
+  if (idx === -1) return;
+  const aiBody = await fetchAILetter(milestone);
+  if (aiBody) {
+    letters[idx] = { milestone, ts: Date.now(), body: aiBody, aiGenerated: true };
+    await saveLetters();
+    renderLetters();
+  }
 }
 
 // ---------- Echo: surface past writing that connects to today, by content not date ----------
