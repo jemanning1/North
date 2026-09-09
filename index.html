@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v8 -->
+<!-- APP_VERSION: v9 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -376,28 +376,97 @@
     padding: 36px 34px;
     margin-bottom: 36px;
   }
+  .noticed-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 18px;
+  }
   .noticed-card .lead {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-size: 20px;
-    margin: 0 0 18px;
+    margin: 0;
     color: var(--gold-soft);
   }
-  .noticed-card ul {
+  .refresh-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    background: transparent;
+    border: 1px solid rgba(227, 205, 154, 0.35);
+    color: var(--gold-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .section-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    opacity: 0.75;
+    margin: 22px 0 10px;
+  }
+  #changesSection .section-label { margin-top: 0; }
+  .section-list {
     margin: 0; padding: 0; list-style: none;
   }
-  .noticed-card li {
+  .section-list li {
     font-family: 'Newsreader', serif;
     font-size: 16px;
-    line-height: 1.7;
+    line-height: 1.6;
     padding-left: 20px;
     position: relative;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
   }
-  .noticed-card li::before {
+  .section-list li::before {
     content: "—";
-    position: absolute; left: 0;
+    position: absolute; left: 0; top: 0;
     color: var(--gold);
+  }
+  .changes-list li::before { content: "↝"; }
+  .obs-text { flex: 1; }
+  .obs-empty {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    opacity: 0.55;
+    padding-left: 20px;
+  }
+  .reaction-btns {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .reaction-btns button {
+    font-size: 12px;
+    background: transparent;
+    border: 1px solid rgba(227, 205, 154, 0.3);
+    color: var(--gold-soft);
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+  }
+  .reaction-btns button.active-confirm {
+    background: var(--gold);
+    color: var(--forest-deep);
+    border-color: var(--gold);
+  }
+  .reaction-btns button.active-reject {
+    background: rgba(200,90,90,0.75);
+    color: var(--cream);
+    border-color: rgba(200,90,90,0.75);
   }
   .letters-heading {
     font-family: 'Fraunces', serif;
@@ -690,8 +759,29 @@
 
     <div id="compassUnlocked" style="display:none;">
       <div class="noticed-card">
-        <p class="lead">I've noticed…</p>
-        <ul id="noticedList"></ul>
+        <div class="noticed-top">
+          <p class="lead">I've noticed…</p>
+          <button class="refresh-btn" id="refreshCompassBtn" title="Refresh insights">↻ Refresh</button>
+        </div>
+        <div id="changesSection" style="display:none;">
+          <div class="section-label">What's changed since last time</div>
+          <ul class="section-list changes-list" id="changesList"></ul>
+        </div>
+        <div id="valuesSection">
+          <div class="section-label">Values</div>
+          <ul class="section-list" id="valuesList"></ul>
+        </div>
+        <div id="strengthsSection">
+          <div class="section-label">Strengths</div>
+          <ul class="section-list" id="strengthsList"></ul>
+        </div>
+        <div id="tensionsSection">
+          <div class="section-label">Tensions</div>
+          <ul class="section-list" id="tensionsList"></ul>
+        </div>
+        <div id="fallbackSection" style="display:none;">
+          <ul class="section-list" id="fallbackList"></ul>
+        </div>
       </div>
 
       <h3 class="letters-heading">Letters to Yourself</h3>
@@ -704,7 +794,7 @@
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v8';
+const APP_VERSION = 'v9';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -1091,7 +1181,41 @@ function buildNoticedList(entryList) {
   return notes;
 }
 
-async function renderCompass() {
+// ---------- Compass: storage helpers for history and feedback ----------
+function getCompassHistory() {
+  try {
+    const raw = localStorage.getItem('north-compass-history');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function pushCompassHistory(snapshot) {
+  const history = getCompassHistory();
+  history.push(snapshot);
+  // keep only the last 10 readings — plenty for comparison, avoids unbounded growth
+  const trimmed = history.slice(-10);
+  localStorage.setItem('north-compass-history', JSON.stringify(trimmed));
+}
+function getCompassFeedback() {
+  try {
+    const raw = localStorage.getItem('north-compass-feedback');
+    return raw ? JSON.parse(raw) : { confirmed: [], rejected: [] };
+  } catch (e) { return { confirmed: [], rejected: [] }; }
+}
+function recordCompassFeedback(text, kind) {
+  const fb = getCompassFeedback();
+  // remove from both lists first so a re-tap can flip the reaction cleanly
+  fb.confirmed = fb.confirmed.filter(t => t !== text);
+  fb.rejected = fb.rejected.filter(t => t !== text);
+  if (kind === 'confirm') fb.confirmed.push(text);
+  if (kind === 'reject') fb.rejected.push(text);
+  // cap each list so the payload sent to the AI doesn't grow forever
+  fb.confirmed = fb.confirmed.slice(-20);
+  fb.rejected = fb.rejected.slice(-20);
+  localStorage.setItem('north-compass-feedback', JSON.stringify(fb));
+  return fb;
+}
+
+async function renderCompass(forceRefresh) {
   const total = entries.length;
   const locked = document.getElementById('compassLocked');
   const unlocked = document.getElementById('compassUnlocked');
@@ -1107,46 +1231,134 @@ async function renderCompass() {
   locked.style.display = 'none';
   unlocked.style.display = 'block';
 
-  const list = document.getElementById('noticedList');
   const url = getSheetUrl();
   const cacheRaw = localStorage.getItem('north-compass-cache');
   const cache = cacheRaw ? JSON.parse(cacheRaw) : null;
 
-  // Use cached AI result if it matches the current entry count — avoids re-calling on every tab switch
-  if (cache && cache.count === total && cache.observations) {
-    renderNoticedList(cache.observations);
+  if (!forceRefresh && cache && cache.count === total && cache.values) {
+    renderCompassSections(cache);
   } else if (url) {
-    list.innerHTML = '<li style="opacity:0.7;">Reading through your reflections…</li>';
-    const observations = await fetchAICompass();
-    if (observations) {
-      localStorage.setItem('north-compass-cache', JSON.stringify({ count: total, observations }));
-      renderNoticedList(observations);
+    setSectionsLoading();
+    const result = await fetchAICompass();
+    if (result) {
+      localStorage.setItem('north-compass-cache', JSON.stringify({ count: total, ...result }));
+      pushCompassHistory({ count: total, ts: Date.now(), values: result.values, strengths: result.strengths, tensions: result.tensions });
+      renderCompassSections(result);
     } else {
-      renderNoticedList(buildNoticedList(entries), true);
+      renderFallback();
     }
   } else {
-    renderNoticedList(buildNoticedList(entries), true);
+    renderFallback();
   }
 
   renderLetters();
 }
 
-function renderNoticedList(notes, isFallback) {
-  const list = document.getElementById('noticedList');
+function setSectionsLoading() {
+  ['changesSection'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('fallbackSection').style.display = 'none';
+  ['valuesList', 'strengthsList', 'tensionsList'].forEach(id => {
+    document.getElementById(id).innerHTML = '<li style="opacity:0.7; padding-left:0;">Reading through your reflections…</li>';
+  });
+}
+
+function renderCompassSections(result) {
+  document.getElementById('fallbackSection').style.display = 'none';
+  document.getElementById('valuesSection').style.display = 'block';
+  document.getElementById('strengthsSection').style.display = 'block';
+  document.getElementById('tensionsSection').style.display = 'block';
+
+  fillSection('valuesList', result.values);
+  fillSection('strengthsList', result.strengths);
+  fillSection('tensionsList', result.tensions);
+
+  const changesEl = document.getElementById('changesSection');
+  if (result.changes && result.changes.length) {
+    changesEl.style.display = 'block';
+    const list = document.getElementById('changesList');
+    list.innerHTML = '';
+    result.changes.forEach(text => {
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.className = 'obs-text';
+      span.textContent = text;
+      li.appendChild(span);
+      list.appendChild(li);
+    });
+  } else {
+    changesEl.style.display = 'none';
+  }
+}
+
+function fillSection(listId, items) {
+  const list = document.getElementById(listId);
   list.innerHTML = '';
-  notes.forEach(n => {
+  if (!items || items.length === 0) {
+    list.innerHTML = '<div class="obs-empty">Nothing clear enough to name yet.</div>';
+    return;
+  }
+  const feedback = getCompassFeedback();
+  items.forEach(text => {
     const li = document.createElement('li');
-    li.textContent = n;
+    const span = document.createElement('span');
+    span.className = 'obs-text';
+    span.textContent = text;
+
+    const reactions = document.createElement('div');
+    reactions.className = 'reaction-btns';
+    const yesBtn = document.createElement('button');
+    yesBtn.textContent = '✓';
+    yesBtn.title = 'This feels true';
+    const noBtn = document.createElement('button');
+    noBtn.textContent = '✕';
+    noBtn.title = 'This feels off';
+
+    if (feedback.confirmed.includes(text)) yesBtn.classList.add('active-confirm');
+    if (feedback.rejected.includes(text)) noBtn.classList.add('active-reject');
+
+    yesBtn.addEventListener('click', () => {
+      recordCompassFeedback(text, 'confirm');
+      yesBtn.classList.add('active-confirm');
+      noBtn.classList.remove('active-reject');
+    });
+    noBtn.addEventListener('click', () => {
+      recordCompassFeedback(text, 'reject');
+      noBtn.classList.add('active-reject');
+      yesBtn.classList.remove('active-confirm');
+    });
+
+    reactions.appendChild(yesBtn);
+    reactions.appendChild(noBtn);
+    li.appendChild(span);
+    li.appendChild(reactions);
     list.appendChild(li);
   });
-  if (isFallback) {
-    const note = document.createElement('li');
-    note.style.opacity = '0.6';
-    note.style.fontSize = '13px';
-    note.style.fontFamily = "'Inter', sans-serif";
-    note.textContent = 'Connect your Sheet/AI script (⚙) for deeper, AI-read analysis instead of word-counting.';
-    list.appendChild(note);
-  }
+}
+
+function renderFallback() {
+  document.getElementById('changesSection').style.display = 'none';
+  document.getElementById('valuesSection').style.display = 'none';
+  document.getElementById('strengthsSection').style.display = 'none';
+  document.getElementById('tensionsSection').style.display = 'none';
+  document.getElementById('fallbackSection').style.display = 'block';
+
+  const list = document.getElementById('fallbackList');
+  list.innerHTML = '';
+  buildNoticedList(entries).forEach(n => {
+    const li = document.createElement('li');
+    const span = document.createElement('span');
+    span.className = 'obs-text';
+    span.textContent = n;
+    li.appendChild(span);
+    list.appendChild(li);
+  });
+  const note = document.createElement('li');
+  note.style.opacity = '0.6';
+  note.style.fontSize = '13px';
+  note.style.fontFamily = "'Inter', sans-serif";
+  note.style.paddingLeft = '0';
+  note.textContent = 'Connect your Sheet/AI script (⚙), or check it\'s working, for deeper AI-read analysis instead of word-counting.';
+  list.appendChild(note);
 }
 
 async function fetchAICompass() {
@@ -1154,17 +1366,36 @@ async function fetchAICompass() {
   if (!url) return null;
   try {
     const slice = entries.slice(-30);
+    const history = getCompassHistory();
+    const previous = history.length ? history[history.length - 1] : null;
+    const feedback = getCompassFeedback();
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'compass', entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season })) })
+      body: JSON.stringify({
+        action: 'compass',
+        entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season })),
+        previous: previous ? { values: previous.values, strengths: previous.strengths, tensions: previous.tensions } : null,
+        feedback: feedback
+      })
     });
     const data = await res.json();
-    return (data.observations && data.observations.length) ? data.observations : null;
+    if (data.values === null) return null; // error case from Apps Script
+    return { values: data.values || [], strengths: data.strengths || [], tensions: data.tensions || [], changes: data.changes || [] };
   } catch (e) {
     return null;
   }
 }
+
+document.getElementById('refreshCompassBtn').addEventListener('click', async (evt) => {
+  evt.target.disabled = true;
+  evt.target.textContent = '↻ Reading…';
+  await renderCompass(true);
+  evt.target.disabled = false;
+  evt.target.textContent = '↻ Refresh';
+});
+
 
 function renderLetters() {
   const container = document.getElementById('lettersList');
