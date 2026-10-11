@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v9 -->
+<!-- APP_VERSION: v11 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -531,6 +531,19 @@
     margin-top: 22px;
     display: flex;
     justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .experiment-card {
+    border-left-color: var(--sage);
+  }
+  .experiment-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 8px;
   }
   .dig-deeper-row .ghost-btn {
     color: var(--forest);
@@ -682,6 +695,14 @@
         <button class="btn-ghost" id="closeSyncPanel">Close</button>
       </div>
       <div class="status" id="syncStatus"></div>
+
+      <h3 style="margin-top:28px;">Letters to Yourself</h3>
+      <p>Your first letter arrives at 30 reflections. After that, a new one arrives every this many reflections:</p>
+      <input type="number" id="letterIntervalInput" min="1" placeholder="20">
+      <div class="row">
+        <button class="btn-primary" id="saveLetterInterval">Save</button>
+      </div>
+      <div class="status" id="letterIntervalStatus"></div>
     </div>
   </div>
 
@@ -714,9 +735,14 @@
 
       <div class="dig-deeper-row">
         <button class="ghost-btn" id="digDeeperBtn">Dig deeper</button>
+        <button class="ghost-btn" id="experimentBtn">One small thing</button>
       </div>
       <div class="dig-deeper-card" id="digDeeperCard" style="display:none;">
         <p class="dig-deeper-text" id="digDeeperText"></p>
+      </div>
+      <div class="dig-deeper-card experiment-card" id="experimentCard" style="display:none;">
+        <div class="experiment-label">Worth testing, if you're curious</div>
+        <p class="dig-deeper-text" id="experimentText"></p>
       </div>
     </div>
 
@@ -794,7 +820,7 @@
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v9';
+const APP_VERSION = 'v11';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -1012,6 +1038,7 @@ function renderToday() {
 document.getElementById('anotherBtn').addEventListener('click', () => {
   sessionOverride = pickRandomQuestion((sessionOverride || todayQuestion).q);
   document.getElementById('digDeeperCard').style.display = 'none';
+  document.getElementById('experimentCard').style.display = 'none';
   renderToday();
 });
 
@@ -1270,7 +1297,7 @@ function renderCompassSections(result) {
 
   fillSection('valuesList', result.values);
   fillSection('strengthsList', result.strengths);
-  fillSection('tensionsList', result.tensions);
+  fillSection('tensionsList', result.tensions, true);
 
   const changesEl = document.getElementById('changesSection');
   if (result.changes && result.changes.length) {
@@ -1288,9 +1315,23 @@ function renderCompassSections(result) {
   } else {
     changesEl.style.display = 'none';
   }
+
+  const allEmpty = (!result.values || !result.values.length) &&
+                    (!result.strengths || !result.strengths.length) &&
+                    (!result.tensions || !result.tensions.length);
+  if (allEmpty && result.debugRaw) {
+    const list = document.getElementById('valuesList');
+    const note = document.createElement('li');
+    note.style.opacity = '0.6';
+    note.style.fontSize = '12px';
+    note.style.fontFamily = "'Inter', sans-serif";
+    note.style.paddingLeft = '0';
+    note.textContent = 'Debug — raw AI response: ' + result.debugRaw;
+    list.appendChild(note);
+  }
 }
 
-function fillSection(listId, items) {
+function fillSection(listId, items, isTension) {
   const list = document.getElementById(listId);
   list.innerHTML = '';
   if (!items || items.length === 0) {
@@ -1300,6 +1341,16 @@ function fillSection(listId, items) {
   const feedback = getCompassFeedback();
   items.forEach(text => {
     const li = document.createElement('li');
+    li.style.flexDirection = 'column';
+    li.style.alignItems = 'stretch';
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'flex-start';
+    row.style.gap = '12px';
+    row.style.width = '100%';
+
     const span = document.createElement('span');
     span.className = 'obs-text';
     span.textContent = text;
@@ -1329,10 +1380,59 @@ function fillSection(listId, items) {
 
     reactions.appendChild(yesBtn);
     reactions.appendChild(noBtn);
-    li.appendChild(span);
-    li.appendChild(reactions);
+    row.appendChild(span);
+    row.appendChild(reactions);
+    li.appendChild(row);
+
+    if (isTension) {
+      li.appendChild(buildTensionTestToggle(text));
+    }
+
     list.appendChild(li);
   });
+}
+
+function buildTensionTestToggle(tensionText) {
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '8px';
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.textContent = 'Something to test →';
+  toggleBtn.style.cssText = 'font-family:"Inter",sans-serif; font-size:12px; background:transparent; border:none; color:var(--gold-soft); opacity:0.8; cursor:pointer; padding:0;';
+
+  const resultBox = document.createElement('div');
+  resultBox.style.cssText = 'display:none; margin-top:8px; padding:12px 14px; background:rgba(255,255,255,0.06); border-radius:8px; font-family:"Newsreader",serif; font-style:italic; font-size:14px; line-height:1.5;';
+
+  let loaded = false;
+  toggleBtn.addEventListener('click', async () => {
+    if (resultBox.style.display === 'block') { resultBox.style.display = 'none'; return; }
+    resultBox.style.display = 'block';
+    if (loaded) return;
+    resultBox.textContent = 'Thinking…';
+    const url = getSheetUrl();
+    if (!url) { resultBox.textContent = 'Connect your script first — tap ⚙.'; return; }
+    try {
+      const slice = entries.slice(-30);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'tensionTest',
+          tension: tensionText,
+          entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season }))
+        })
+      });
+      const data = await res.json();
+      resultBox.textContent = data.suggestion || data.error || "Nothing came back that time.";
+      loaded = true;
+    } catch (e) {
+      resultBox.textContent = 'Network error: ' + e.message;
+    }
+  });
+
+  wrap.appendChild(toggleBtn);
+  wrap.appendChild(resultBox);
+  return wrap;
 }
 
 function renderFallback() {
@@ -1382,7 +1482,7 @@ async function fetchAICompass() {
     });
     const data = await res.json();
     if (data.values === null) return null; // error case from Apps Script
-    return { values: data.values || [], strengths: data.strengths || [], tensions: data.tensions || [], changes: data.changes || [] };
+    return { values: data.values || [], strengths: data.strengths || [], tensions: data.tensions || [], changes: data.changes || [], debugRaw: data.debugRaw || null };
   } catch (e) {
     return null;
   }
@@ -1476,9 +1576,23 @@ async function fetchAILetter(milestone) {
   }
 }
 
+function getLetterInterval() {
+  const stored = parseInt(localStorage.getItem('north-letter-interval'), 10);
+  return (stored && stored > 0) ? stored : 20; // default: every 20 after the first 30
+}
+function setLetterInterval(n) {
+  localStorage.setItem('north-letter-interval', String(n));
+}
+function isLetterMilestone(total, interval) {
+  if (total < 30) return false;
+  if (total === 30) return true;
+  return (total - 30) % interval === 0;
+}
+
 async function checkAndGenerateLetter() {
   const total = entries.length;
-  if (total < 30 || total % 30 !== 0) return;
+  const interval = getLetterInterval();
+  if (!isLetterMilestone(total, interval)) return;
   if (letters.some(l => l.milestone === total)) return;
 
   const aiBody = await fetchAILetter(total);
@@ -1614,6 +1728,48 @@ async function askDigDeeper() {
 }
 document.getElementById('digDeeperBtn').addEventListener('click', askDigDeeper);
 
+// ---------- One small thing: a daily, optional, testable micro-experiment ----------
+async function askExperiment() {
+  const url = getSheetUrl();
+  const card = document.getElementById('experimentCard');
+  const textEl = document.getElementById('experimentText');
+  const q = sessionOverride || todayQuestion;
+  const reflection = reflectionInput.value.trim();
+
+  if (!url) {
+    card.style.display = 'block';
+    textEl.textContent = 'Connect your script first — tap ⚙ and paste your Apps Script URL.';
+    return;
+  }
+  if (!reflection) {
+    card.style.display = 'block';
+    textEl.textContent = 'Write something first.';
+    return;
+  }
+
+  card.style.display = 'block';
+  textEl.textContent = 'Thinking…';
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'experiment', question: q.q, reflection: reflection })
+    });
+    const data = await res.json();
+    if (data.suggestion) {
+      textEl.textContent = data.suggestion;
+    } else if (data.error) {
+      textEl.textContent = 'Script error: ' + data.error;
+    } else {
+      textEl.textContent = "Nothing came back that time — try again in a moment.";
+    }
+  } catch (e) {
+    textEl.textContent = "Network error reaching the script: " + e.message;
+  }
+}
+document.getElementById('experimentBtn').addEventListener('click', askExperiment);
+
 // ---------- Google Sheet sync ----------
 function getSheetUrl() {
   return localStorage.getItem('north-sheet-url') || '';
@@ -1653,6 +1809,7 @@ const syncOverlay = document.getElementById('syncOverlay');
 document.getElementById('syncGear').addEventListener('click', () => {
   document.getElementById('sheetUrlInput').value = getSheetUrl();
   document.getElementById('syncStatus').textContent = getSheetUrl() ? 'Currently connected.' : 'Not connected yet.';
+  document.getElementById('letterIntervalInput').value = getLetterInterval();
   syncOverlay.classList.add('show');
 });
 document.getElementById('closeSyncPanel').addEventListener('click', () => syncOverlay.classList.remove('show'));
@@ -1664,6 +1821,15 @@ document.getElementById('saveSheetUrl').addEventListener('click', () => {
 });
 document.getElementById('syncAllBtn').addEventListener('click', () => {
   syncAllEntries(document.getElementById('syncStatus'));
+});
+document.getElementById('saveLetterInterval').addEventListener('click', () => {
+  const n = parseInt(document.getElementById('letterIntervalInput').value, 10);
+  if (!n || n < 1) {
+    document.getElementById('letterIntervalStatus').textContent = 'Enter a number of 1 or more.';
+    return;
+  }
+  setLetterInterval(n);
+  document.getElementById('letterIntervalStatus').textContent = `Saved. After your first letter at 30, a new one every ${n} reflections.`;
 });
 
 // ---------- Tabs ----------
