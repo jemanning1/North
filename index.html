@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v11 -->
+<!-- APP_VERSION: v12 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -815,12 +815,12 @@
     </div>
   </section>
 
-  <footer class="tagline">NORTH — QUESTIONS WORTH LIVING</footer>
+  <footer class="tagline">NORTH — QUESTIONS WORTH LIVING · v12</footer>
 </div>
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v11';
+const APP_VERSION = 'v12';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -1278,6 +1278,7 @@ async function renderCompass(forceRefresh) {
     renderFallback();
   }
 
+  await checkAndGenerateLetter();
   renderLetters();
 }
 
@@ -1589,19 +1590,34 @@ function isLetterMilestone(total, interval) {
   return (total - 30) % interval === 0;
 }
 
+let catchingUp = false;
+// Generates any letter whose milestone has been reached but has no letter yet,
+// so a missed milestone is picked up next time instead of being lost.
 async function checkAndGenerateLetter() {
+  if (catchingUp) return;
   const total = entries.length;
+  if (total < 30) return;
   const interval = getLetterInterval();
-  if (!isLetterMilestone(total, interval)) return;
-  if (letters.some(l => l.milestone === total)) return;
+  const milestones = [30];
+  for (let m = 30 + interval; m <= total; m += interval) milestones.push(m);
+  const missing = milestones.filter(m => !letters.some(l => l.milestone === m)).slice(-3);
+  if (!missing.length) return;
 
-  const aiBody = await fetchAILetter(total);
-  if (aiBody) {
-    letters.push({ milestone: total, ts: Date.now(), body: aiBody, aiGenerated: true });
-  } else {
-    letters.push({ milestone: total, ts: Date.now(), body: localGenerateLetter(total), aiGenerated: false });
+  catchingUp = true;
+  try {
+    for (const m of missing) {
+      const aiBody = await fetchAILetter(m);
+      if (aiBody) {
+        letters.push({ milestone: m, ts: Date.now(), body: aiBody, aiGenerated: true });
+      } else {
+        letters.push({ milestone: m, ts: Date.now(), body: localGenerateLetter(m), aiGenerated: false });
+      }
+    }
+    letters.sort((a, b) => a.milestone - b.milestone);
+    await saveLetters();
+  } finally {
+    catchingUp = false;
   }
-  await saveLetters();
 }
 
 async function regenerateLetter(milestone) {
