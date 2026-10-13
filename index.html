@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>North — Questions worth living</title>
-<!-- APP_VERSION: v12 -->
+<!-- APP_VERSION: v13 -->
 <!-- Your reflections are stored only in this browser, on this device. Nothing is sent anywhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -134,6 +134,32 @@
     margin-top: 28px;
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .harvest-row { margin-top: 22px; }
+  .harvest-label {
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 16px;
+    color: var(--forest); margin-bottom: 8px;
+  }
+  .harvest-input-row { display: flex; gap: 10px; }
+  .harvest-input-row input {
+    flex: 1; font-family: 'Newsreader', serif; font-size: 16px;
+    padding: 11px 14px; border: 1px solid #ddd3ba; border-radius: 10px; background: #fff; color: var(--ink);
+  }
+  .harvest-input-row .ghost-btn { color: var(--forest); border-color: #cdbf9a; }
+  .harvest-saved { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--sage); margin-top: 8px; min-height: 14px; }
+  .entry .entry-h {
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 15px;
+    color: var(--forest); margin-top: 10px;
+  }
+  .tried-btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; background: transparent;
+    border: 1px solid currentColor; border-radius: 999px; padding: 5px 12px; cursor: pointer; opacity: 0.85; color: inherit;
+  }
+  .tried-input {
+    width: 100%; margin-top: 8px; font-family: 'Newsreader', serif; font-size: 15px;
+    padding: 9px 12px; border-radius: 8px; border: 1px solid #ddd3ba; background: #fff; color: var(--ink);
   }
   .ghost-btn {
     font-family: 'Inter', sans-serif;
@@ -713,6 +739,7 @@
       <div class="season" id="seasonLabel">Season</div>
       <p class="question-text" id="questionText">Loading your question…</p>
       <div class="card-footer">
+        <button class="ghost-btn" id="fromCompassBtn" style="display:none;">From my Compass</button>
         <button class="ghost-btn" id="anotherBtn">Ask me something else</button>
       </div>
     </div>
@@ -733,6 +760,15 @@
       </div>
       <div class="confirm" id="confirmMsg">Written down. It's part of your map now.</div>
 
+      <div class="harvest-row" id="harvestRow" style="display:none;">
+        <div class="harvest-label">In one line — what did you notice today?</div>
+        <div class="harvest-input-row">
+          <input type="text" id="harvestInput" maxlength="160" placeholder="One sentence is plenty">
+          <button class="ghost-btn" id="harvestBtn">Keep</button>
+        </div>
+        <div class="harvest-saved" id="harvestSaved"></div>
+      </div>
+
       <div class="dig-deeper-row">
         <button class="ghost-btn" id="digDeeperBtn">Dig deeper</button>
         <button class="ghost-btn" id="experimentBtn">One small thing</button>
@@ -743,6 +779,7 @@
       <div class="dig-deeper-card experiment-card" id="experimentCard" style="display:none;">
         <div class="experiment-label">Worth testing, if you're curious</div>
         <p class="dig-deeper-text" id="experimentText"></p>
+        <div id="experimentTried" style="margin-top:12px; color:var(--forest);"></div>
       </div>
     </div>
 
@@ -815,12 +852,12 @@
     </div>
   </section>
 
-  <footer class="tagline">NORTH — QUESTIONS WORTH LIVING · v12</footer>
+  <footer class="tagline">NORTH — QUESTIONS WORTH LIVING · v13</footer>
 </div>
 
 <script>
 // ---------- Auto-update: reload silently if a newer version has been deployed ----------
-const APP_VERSION = 'v12';
+const APP_VERSION = 'v13';
 (async function checkForUpdate() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
@@ -1030,15 +1067,125 @@ function renderToday() {
   const existing = entries.find(e => e.date === todayKey() && e.question === q.q);
   document.getElementById('reflectionInput').value = existing ? existing.reflection : '';
 
+  const harvestRow = document.getElementById('harvestRow');
+  harvestRow.style.display = existing ? 'block' : 'none';
+  document.getElementById('harvestInput').value = (existing && existing.harvest) ? existing.harvest : '';
+  document.getElementById('harvestSaved').textContent = (existing && existing.harvest) ? 'Kept.' : '';
+  updateCompassQBtn();
+
   document.getElementById('streakNum').textContent = computeStreak();
   document.getElementById('totalNum').textContent = entries.length;
   renderEcho(q);
 }
 
+// ---------- Harvest: one line to close the sitting ----------
+document.getElementById('harvestBtn').addEventListener('click', async () => {
+  const q = sessionOverride || todayQuestion;
+  const idx = entries.findIndex(e => e.date === todayKey() && e.question === q.q);
+  const val = document.getElementById('harvestInput').value.trim();
+  if (idx < 0 || !val) return;
+  entries[idx].harvest = val;
+  await saveEntries();
+  syncEntryToSheet(entries[idx]);
+  document.getElementById('harvestSaved').textContent = 'Kept.';
+  renderMap();
+});
+
+// ---------- Experiments: log what happened when you tried one ----------
+function getExperiments() {
+  try { return JSON.parse(localStorage.getItem('north-experiments') || '[]'); } catch (e) { return []; }
+}
+function addExperiment(item) {
+  const list = getExperiments();
+  list.push(item);
+  localStorage.setItem('north-experiments', JSON.stringify(list.slice(-30)));
+}
+function buildTriedIt(kind, about, suggestion) {
+  const wrap = document.createElement('div');
+  const btn = document.createElement('button');
+  btn.className = 'tried-btn';
+  btn.textContent = 'I tried it';
+  const box = document.createElement('div');
+  box.style.display = 'none';
+  const input = document.createElement('input');
+  input.className = 'tried-input';
+  input.placeholder = 'What happened? A line is enough.';
+  const save = document.createElement('button');
+  save.className = 'tried-btn';
+  save.style.marginTop = '8px';
+  save.textContent = 'Save';
+  const done = document.createElement('div');
+  done.style.cssText = 'font-family:Inter,sans-serif; font-size:12px; margin-top:8px; opacity:0.8;';
+  box.appendChild(input); box.appendChild(save);
+  btn.addEventListener('click', () => { box.style.display = box.style.display === 'none' ? 'block' : 'none'; });
+  save.addEventListener('click', () => {
+    const outcome = input.value.trim();
+    if (!outcome) return;
+    addExperiment({ kind, about, suggestion, outcome, date: todayKey() });
+    done.textContent = 'Logged. Your next Compass reading can take it into account.';
+    box.style.display = 'none';
+    btn.style.display = 'none';
+  });
+  wrap.appendChild(btn); wrap.appendChild(box); wrap.appendChild(done);
+  return wrap;
+}
+
+// ---------- Questions drawn from your own Compass tensions ----------
+function getCompassTensions() {
+  try {
+    const c = JSON.parse(localStorage.getItem('north-compass-cache') || 'null');
+    return (c && c.tensions) ? c.tensions : [];
+  } catch (e) { return []; }
+}
+function updateCompassQBtn() {
+  const btn = document.getElementById('fromCompassBtn');
+  btn.style.display = (getCompassTensions().length && getSheetUrl()) ? 'inline-block' : 'none';
+}
+function resetResultCards() {
+  document.getElementById('digDeeperCard').style.display = 'none';
+  document.getElementById('experimentCard').style.display = 'none';
+  document.getElementById('experimentTried').innerHTML = '';
+}
+document.getElementById('fromCompassBtn').addEventListener('click', async (evt) => {
+  const btn = evt.target;
+  const tensions = getCompassTensions();
+  const url = getSheetUrl();
+  if (!tensions.length || !url) return;
+  const tension = tensions[Math.floor(Math.random() * tensions.length)];
+  const harvests = entries.filter(e => e.harvest).slice(-5).map(e => e.harvest);
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Thinking…';
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'tensionQuestion', tension, harvests })
+    });
+    const data = await res.json();
+    if (data.question) {
+      sessionOverride = { q: data.question, s: 'Compass' };
+      localStorage.setItem('north-compass-q', JSON.stringify({ date: todayKey(), q: data.question, s: 'Compass' }));
+      resetResultCards();
+      renderToday();
+    } else {
+      btn.textContent = "Couldn't this time";
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = "Couldn't reach it";
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  }
+  btn.disabled = false;
+  if (btn.textContent === 'Thinking…') btn.textContent = original;
+});
+
 document.getElementById('anotherBtn').addEventListener('click', () => {
   sessionOverride = pickRandomQuestion((sessionOverride || todayQuestion).q);
   document.getElementById('digDeeperCard').style.display = 'none';
   document.getElementById('experimentCard').style.display = 'none';
+  document.getElementById('experimentTried').innerHTML = '';
+  localStorage.removeItem('north-compass-q');
   renderToday();
 });
 
@@ -1065,6 +1212,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   const dateKey = todayKey();
   const existingIdx = entries.findIndex(e => e.date === dateKey && e.question === q.q);
   const entry = { date: dateKey, question: q.q, season: q.s, reflection: text, ts: Date.now() };
+  if (existingIdx >= 0 && entries[existingIdx].harvest) entry.harvest = entries[existingIdx].harvest;
   if (existingIdx >= 0) entries[existingIdx] = entry; else entries.push(entry);
   await saveEntries();
   await checkAndGenerateLetter();
@@ -1123,7 +1271,7 @@ function renderMap() {
         tip.style.left = (evt.clientX - rect.left) + 'px';
         tip.style.top = (evt.clientY - rect.top) + 'px';
         tip.style.opacity = '1';
-        tip.textContent = `${p.entry.date} — ${p.entry.question}`;
+        tip.textContent = p.entry.harvest ? p.entry.harvest : p.entry.question;
       });
       g.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
       svg.appendChild(g);
@@ -1155,6 +1303,12 @@ function renderEntryList(filter = '') {
       <div class="entry-a"></div>
     `;
     div.querySelector('.entry-a').textContent = e.reflection;
+    if (e.harvest) {
+      const h = document.createElement('div');
+      h.className = 'entry-h';
+      h.textContent = 'Noticed: ' + e.harvest;
+      div.appendChild(h);
+    }
     list.appendChild(div);
   });
 }
@@ -1404,14 +1558,16 @@ function buildTensionTestToggle(tensionText) {
   const resultBox = document.createElement('div');
   resultBox.style.cssText = 'display:none; margin-top:8px; padding:12px 14px; background:rgba(255,255,255,0.06); border-radius:8px; font-family:"Newsreader",serif; font-style:italic; font-size:14px; line-height:1.5;';
 
+  const resultText = document.createElement('div');
+  resultBox.appendChild(resultText);
   let loaded = false;
   toggleBtn.addEventListener('click', async () => {
     if (resultBox.style.display === 'block') { resultBox.style.display = 'none'; return; }
     resultBox.style.display = 'block';
     if (loaded) return;
-    resultBox.textContent = 'Thinking…';
+    resultText.textContent = 'Thinking…';
     const url = getSheetUrl();
-    if (!url) { resultBox.textContent = 'Connect your script first — tap ⚙.'; return; }
+    if (!url) { resultText.textContent = 'Connect your script first — tap ⚙.'; return; }
     try {
       const slice = entries.slice(-30);
       const res = await fetch(url, {
@@ -1420,14 +1576,19 @@ function buildTensionTestToggle(tensionText) {
         body: JSON.stringify({
           action: 'tensionTest',
           tension: tensionText,
-          entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season }))
+          entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season, harvest: e.harvest || '' }))
         })
       });
       const data = await res.json();
-      resultBox.textContent = data.suggestion || data.error || "Nothing came back that time.";
+      resultText.textContent = data.suggestion || data.error || "Nothing came back that time.";
+      if (data.suggestion) {
+        const t = buildTriedIt('tension', tensionText, data.suggestion);
+        t.style.marginTop = '10px';
+        resultBox.appendChild(t);
+      }
       loaded = true;
     } catch (e) {
-      resultBox.textContent = 'Network error: ' + e.message;
+      resultText.textContent = 'Network error: ' + e.message;
     }
   });
 
@@ -1476,9 +1637,10 @@ async function fetchAICompass() {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'compass',
-        entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season })),
+        entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season, harvest: e.harvest || '' })),
         previous: previous ? { values: previous.values, strengths: previous.strengths, tensions: previous.tensions } : null,
-        feedback: feedback
+        feedback: feedback,
+        experiments: getExperiments().slice(-6).map(x => ({ about: x.about, tried: x.suggestion, whatHappened: x.outcome }))
       })
     });
     const data = await res.json();
@@ -1567,7 +1729,7 @@ async function fetchAILetter(milestone) {
       body: JSON.stringify({
         action: 'letter',
         milestone: milestone,
-        entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season }))
+        entries: slice.map(e => ({ question: e.question, reflection: e.reflection, season: e.season, harvest: e.harvest || '' }))
       })
     });
     const data = await res.json();
@@ -1775,6 +1937,9 @@ async function askExperiment() {
     const data = await res.json();
     if (data.suggestion) {
       textEl.textContent = data.suggestion;
+      const slot = document.getElementById('experimentTried');
+      slot.innerHTML = '';
+      slot.appendChild(buildTriedIt('daily', q.q, data.suggestion));
     } else if (data.error) {
       textEl.textContent = 'Script error: ' + data.error;
     } else {
@@ -1866,6 +2031,10 @@ function switchTab(name) {
 // ---------- Init ----------
 (async function init() {
   todayQuestion = pickQuestionForToday();
+  try {
+    const cq = JSON.parse(localStorage.getItem('north-compass-q') || 'null');
+    if (cq && cq.date === todayKey() && cq.q) sessionOverride = { q: cq.q, s: cq.s || 'Compass' };
+  } catch (e) {}
   await loadEntries();
   await loadLetters();
   renderToday();
